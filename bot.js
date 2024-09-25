@@ -118,7 +118,7 @@ Check out the [Gaianet Docs](https://docs.gaianet.ai/intro) for more information
                     const relevantDocs = yield retrieveRelevantDocs(userMessage, vectorStore);
                     console.log("Retrieved relevant docs:", relevantDocs);
                     // Call the Gaianet Gemma API via fetch
-                    const response = yield fetch(process.env.GAIA_LLM_API_ENDPOINT, {
+                    const response = yield fetch("https://gemma.us.gaianet.network/v1/chat/completions", {
                         method: "POST",
                         headers: {
                             accept: "application/json",

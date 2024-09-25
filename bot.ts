@@ -162,7 +162,7 @@ Check out the [Gaianet Docs](https://docs.gaianet.ai/intro) for more information
 
                 console.log(inlineKeyboard);
 
-                await ctx.reply(`*Response*\n\n${gaiaResponse}`, {
+                await ctx.reply(`*Response*\n\n${relevantDocs}`, {
                     parse_mode: "Markdown",
                     reply_markup: inlineKeyboard,
                 });
