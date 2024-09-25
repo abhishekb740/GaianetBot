@@ -4,9 +4,16 @@
     "typescript": "^5.6.2"
   },
   "dependencies": {
+    "@huggingface/inference": "^2.8.0",
+    "@langchain/community": "^0.3.3",
+    "@langchain/core": "^0.3.3",
+    "@langchain/openai": "^0.3.2",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
     "grammy": "^1.30.0",
-    "node-fetch": "^3.3.2"
+    "langchain": "^0.3.2",
+    "node-fetch": "^3.3.2",
+    "transformers": "^3.1.0"
   },
   "type": "module"
 }
