@@ -15,6 +15,7 @@ import { CheerioWebBaseLoader } from "@langchain/community/document_loaders/web/
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
+import telegramifyMarkdown from "telegramify-markdown";
 config();
 const links = [
     "https://docs.gaianet.ai/category/user-guide/",
@@ -89,6 +90,20 @@ function retrieveRelevantDocs(question, vectorStore) {
     });
 }
 const bot = new Bot(process.env.TELEGRAM_BOT_KEY);
+// Function to escape special characters in Markdown
+function escapeMarkdown(text) {
+    return text
+        .replace(/_/g, "\\_") // Escapes underscore
+        .replace(/\*/g, "\\*") // Escapes asterisk
+        .replace(/\[/g, "\\[") // Escapes square brackets
+        .replace(/\]/g, "\\]") // Escapes square brackets
+        .replace(/`/g, "\\`") // Escapes backtick
+        .replace(/\(/g, "\\(") // Escapes parenthesis
+        .replace(/\)/g, "\\)") // Escapes parenthesis
+        .replace(/>/g, "\\>") // Escapes angle brackets
+        .replace(/</g, "\\<") // Escapes angle brackets
+        .replace(/-/g, "\\-"); // Escapes dash (hyphen)
+}
 // Initialize the bot and load vector store
 function initializeBot() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -107,7 +122,6 @@ Check out the [Gaianet Docs](https://docs.gaianet.ai/intro) for more information
             // Message handler for user queries
             bot.on("message:text", (ctx) => __awaiter(this, void 0, void 0, function* () {
                 const userMessage = ctx.message.text;
-                console.log(`User message: ${userMessage}`);
                 try {
                     yield ctx.replyWithChatAction("typing");
                     // Ensure vector store is ready
@@ -116,40 +130,46 @@ Check out the [Gaianet Docs](https://docs.gaianet.ai/intro) for more information
                     }
                     // Retrieve relevant documents from the vector store
                     const relevantDocs = yield retrieveRelevantDocs(userMessage, vectorStore);
-                    console.log("Retrieved relevant docs:", relevantDocs);
                     // Call the Gaianet Gemma API via fetch
-                    const response = yield fetch("https://gemma.us.gaianet.network/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                            accept: "application/json",
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            messages: [
-                                {
-                                    role: "system",
-                                    content: `You are a knowledgeable assistant designed to answer questions strictly related to Gaianet, including its protocol, network architecture, nodes, APIs, and all public features. You have access to the relevant information: ${relevantDocs}. Provide detailed, precise answers based on this information. If a question is unrelated to Gaianet, inform the user that you can only respond to questions about the Gaianet ecosystem.`,
-                                },
-                                {
-                                    role: "user",
-                                    content: userMessage,
-                                },
-                            ],
-                            model: "gemma",
-                        }),
-                    });
-                    console.log(`Gemma API response: ${response.status}`);
-                    const data = yield response.json();
-                    const gaiaResponse = data.choices[0].message.content;
-                    console.log(data);
+                    let gaiaResponse;
+                    try {
+                        const response = yield fetch("https://gemma.us.gaianet.network/v1/chat/completions", {
+                            method: "POST",
+                            headers: {
+                                accept: "application/json",
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: "system",
+                                        // content: `You are a knowledgeable assistant designed to answer questions strictly related to Gaianet, including its protocol, network architecture, nodes, APIs, and all public features. You have access to the relevant information: ${relevantDocs}. Provide detailed, precise answers based on this information. If a question is unrelated to Gaianet, inform the user that you can only respond to questions about the Gaianet ecosystem.`,
+                                        content: relevantDocs
+                                    },
+                                    {
+                                        role: "user",
+                                        content: userMessage,
+                                    },
+                                ],
+                                model: "gemma",
+                            }),
+                        });
+                        const data = yield response.json();
+                        gaiaResponse = data.choices[0].message.content;
+                    }
+                    catch (err) {
+                        console.error("Error interacting with Gaianet Gemma API:", err);
+                    }
                     // Send the response with an inline keyboard
                     const inlineKeyboard = new InlineKeyboard()
                         .text("Ask Another Question", "ask_again")
                         .row()
                         .url("View Docs", "https://docs.gaianet.ai/intro");
-                    console.log(inlineKeyboard);
-                    yield ctx.reply(`*Response*\n\n${gaiaResponse}`, {
-                        parse_mode: "Markdown",
+                    // const sanitizedResponse = escapeMarkdown(gaiaResponse ?? "");
+                    let sanitizedRes = telegramifyMarkdown(gaiaResponse !== null && gaiaResponse !== void 0 ? gaiaResponse : '', 'escape');
+                    console.log(sanitizedRes);
+                    yield ctx.reply(`${sanitizedRes}`, {
+                        parse_mode: "MarkdownV2",
                         reply_markup: inlineKeyboard,
                     });
                 }

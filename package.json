@@ -13,6 +13,7 @@
     "grammy": "^1.30.0",
     "langchain": "^0.3.2",
     "node-fetch": "^3.3.2",
+    "telegramify-markdown": "^1.2.2",
     "transformers": "^3.1.0"
   },
   "type": "module"
