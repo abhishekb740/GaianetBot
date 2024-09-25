@@ -2,6 +2,8 @@
 
 This repository contains a Telegram bot that answers questions about the Gaianet protocol and its ecosystem using the Gaianet LLM model. The bot fetches relevant documentation, builds a vector database, and responds to user queries using RAG, based on the data provided by the Gaianet public API.
 
+Telegram Bot Link: https://t.me/YourGaianetBot
+
 ## Features
 
 - Answers questions about Gaianet's protocol, network, nodes, and more.
