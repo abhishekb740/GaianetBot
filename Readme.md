@@ -15,14 +15,12 @@ This repository contains a Telegram bot that answers questions about the Gaianet
 - **Node.js** version 16 or later
 - **Telegram Bot API Token**: Create a bot via [BotFather](https://core.telegram.org/bots#botfather) and get the API token.
 - **Hugging Face API Key**: Obtain your API key from [Hugging Face](https://huggingface.co/settings/tokens).
-- **Gaianet Gemma API**: You'll need access to Gaianet's Gemma API for the LLM interaction.
 
 ## Installation
 
 1. Clone the repository:
     ```bash
     git clone https://github.com/abhishekb740/GaianetBot.git
-    cd gaianet-telegram-bot
     ```
 
 2. Install the dependencies:
@@ -38,7 +36,8 @@ This repository contains a Telegram bot that answers questions about the Gaianet
 
 4. Build the bot and start it:
     ```bash
-    npm start
+    npx tsc
+    node bot.js
     ```
 
 ## Usage
