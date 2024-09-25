@@ -89,8 +89,6 @@ function retrieveRelevantDocs(question, vectorStore) {
         return retrievedDocs.map((doc) => doc.pageContent).join("\n\n");
     });
 }
-const bot = new Bot(process.env.TELEGRAM_BOT_KEY);
-// Function to escape special characters in Markdown
 function escapeMarkdown(text) {
     return text
         .replace(/_/g, "\\_") // Escapes underscore
@@ -104,102 +102,116 @@ function escapeMarkdown(text) {
         .replace(/</g, "\\<") // Escapes angle brackets
         .replace(/-/g, "\\-"); // Escapes dash (hyphen)
 }
-// Initialize the bot and load vector store
+const bot = new Bot(process.env.TELEGRAM_BOT_KEY);
 function initializeBot() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.log("Initializing bot and building vector store...");
-            // Build the vector store before the bot starts
             vectorStore = yield buildVectorDB();
             console.log("Bot is ready.");
-            // Bot command: Start
-            bot.command("start", (ctx) => {
-                const welcomeMessage = `*Welcome to the Gaianet Bot!*\n\n
-Ask me anything related to the Gaianet protocol, and I'll do my best to help.\n
-Check out the [Gaianet Docs](https://docs.gaianet.ai/intro) for more information.`;
-                ctx.reply(welcomeMessage, { parse_mode: "Markdown" });
-            });
-            // Message handler for user queries
-            bot.on("message:text", (ctx) => __awaiter(this, void 0, void 0, function* () {
-                const userMessage = ctx.message.text;
-                try {
-                    yield ctx.replyWithChatAction("typing");
-                    // Ensure vector store is ready
-                    if (!vectorStore) {
-                        throw new Error("Vector store not initialized yet. Please try again later.");
-                    }
-                    // Retrieve relevant documents from the vector store
-                    const relevantDocs = yield retrieveRelevantDocs(userMessage, vectorStore);
-                    // Call the Gaianet Gemma API via fetch
-                    let gaiaResponse;
-                    try {
-                        const response = yield fetch("https://gemma.us.gaianet.network/v1/chat/completions", {
-                            method: "POST",
-                            headers: {
-                                accept: "application/json",
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                messages: [
-                                    {
-                                        role: "system",
-                                        // content: `You are a knowledgeable assistant designed to answer questions strictly related to Gaianet, including its protocol, network architecture, nodes, APIs, and all public features. You have access to the relevant information: ${relevantDocs}. Provide detailed, precise answers based on this information. If a question is unrelated to Gaianet, inform the user that you can only respond to questions about the Gaianet ecosystem.`,
-                                        content: relevantDocs
-                                    },
-                                    {
-                                        role: "user",
-                                        content: userMessage,
-                                    },
-                                ],
-                                model: "gemma",
-                            }),
-                        });
-                        const data = yield response.json();
-                        gaiaResponse = data.choices[0].message.content;
-                    }
-                    catch (err) {
-                        console.error("Error interacting with Gaianet Gemma API:", err);
-                    }
-                    // Send the response with an inline keyboard
-                    const inlineKeyboard = new InlineKeyboard()
-                        .text("Ask Another Question", "ask_again")
-                        .row()
-                        .url("View Docs", "https://docs.gaianet.ai/intro");
-                    // const sanitizedResponse = escapeMarkdown(gaiaResponse ?? "");
-                    let sanitizedRes = telegramifyMarkdown(gaiaResponse !== null && gaiaResponse !== void 0 ? gaiaResponse : '', 'escape');
-                    console.log(sanitizedRes);
-                    yield ctx.reply(`${sanitizedRes}`, {
-                        parse_mode: "MarkdownV2",
-                        reply_markup: inlineKeyboard,
-                    });
-                }
-                catch (error) {
-                    console.error("Error interacting with Gaianet LLM:", error);
-                    ctx.reply("There was an issue reaching Gaianet's knowledge base. Please try again later.");
-                }
-            }));
-            // Handle the "Ask Again" button interaction
-            bot.callbackQuery("ask_again", (ctx) => {
-                ctx.reply("Please ask your next question about Gaianet:");
-                ctx.answerCallbackQuery(); // Acknowledge the button click
-            });
-            // Quick reply buttons for commonly asked topics
-            bot.command("topics", (ctx) => {
-                const quickReplyKeyboard = new Keyboard()
-                    .text("Protocol Info")
-                    .text("Network Architecture")
-                    .text("Node Setup");
-                ctx.reply("Here are some topics you can ask about:", {
-                    reply_markup: { keyboard: quickReplyKeyboard.build(), one_time_keyboard: true },
-                });
-            });
-            // Start the bot
-            bot.start();
         }
         catch (error) {
             console.error("Failed to initialize bot:", error);
         }
     });
 }
-// Call the bot initialization function
+bot.command("start", (ctx) => {
+    const inlineKeyboard = new InlineKeyboard()
+        .text("Available Commands", "show_commands");
+    const welcomeMessage = `Welcome to the Gaianet Bot! You can click below to see available commands or ask anything related to Gaianet.`;
+    ctx.reply(welcomeMessage, {
+        reply_markup: inlineKeyboard,
+    });
+});
+bot.callbackQuery("show_commands", (ctx) => {
+    const commandsMessage = `
+Here are the available commands:
+/start - Start interacting with the bot
+/topics - Show a list of common topics
+/help - Display the help message with available commands
+    `;
+    ctx.reply(commandsMessage);
+    ctx.answerCallbackQuery();
+});
+bot.command("help", (ctx) => {
+    const helpMessage = `
+Here are the commands you can use:
+
+/start - Start interacting with the Gaianet bot and get the welcome message
+/topics - Show a list of common topics to ask about
+/help - Display this help message with available commands
+    `;
+    ctx.reply(helpMessage);
+});
+bot.command("topics", (ctx) => {
+    const quickReplyKeyboard = new Keyboard()
+        .text("What is Gaianet?")
+        .text("How to install Gaianet Node?")
+        .row()
+        .text("Gaianet User Guide")
+        .text("Gaianet Creator Guide");
+    ctx.reply("Here are some topics you can ask about:", {
+        reply_markup: {
+            keyboard: quickReplyKeyboard.build(),
+            resize_keyboard: true,
+            one_time_keyboard: true
+        },
+    });
+});
+bot.callbackQuery("ask_again", (ctx) => {
+    ctx.reply("Please ask your next question about Gaianet:");
+    ctx.answerCallbackQuery();
+});
+bot.on("message:text", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
+    const userMessage = ctx.message.text;
+    try {
+        yield ctx.replyWithChatAction("typing");
+        if (!vectorStore) {
+            throw new Error("Vector store not initialized yet. Please try again later.");
+        }
+        const relevantDocs = yield retrieveRelevantDocs(userMessage, vectorStore);
+        let gaiaResponse;
+        try {
+            const response = yield fetch("https://gemma.us.gaianet.network/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    accept: "application/json",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messages: [
+                        {
+                            role: "system",
+                            content: `${relevantDocs}`,
+                        },
+                        {
+                            role: "user",
+                            content: `${userMessage}`,
+                        },
+                    ],
+                    model: "gemma",
+                }),
+            });
+            const data = yield response.json();
+            gaiaResponse = data.choices[0].message.content;
+        }
+        catch (err) {
+            console.error("Error interacting with Gaianet Gemma API:", err);
+        }
+        const inlineKeyboard = new InlineKeyboard()
+            .text("Ask Another Question", "ask_again")
+            .row()
+            .url("View Docs", "https://docs.gaianet.ai/intro");
+        let sanitizedRes = telegramifyMarkdown(relevantDocs !== null && relevantDocs !== void 0 ? relevantDocs : '', 'escape');
+        yield ctx.reply(`${sanitizedRes}`, {
+            parse_mode: "MarkdownV2",
+            reply_markup: inlineKeyboard,
+        });
+    }
+    catch (error) {
+        console.error("Error interacting with Gaianet LLM:", error);
+        ctx.reply("There was an issue reaching Gaianet's knowledge base. Please try again later.");
+    }
+}));
 initializeBot();
+bot.start();
